@@ -22,7 +22,6 @@ class ClassificationModel(nn.Module):
         Output:
             logits: [B, num_classes]
         """
-        # TODO: child classes should override this method
         raise NotImplementedError
 
 
@@ -40,18 +39,42 @@ class StudentModel(ClassificationModel):
     def __init__(self, num_classes: int = 10):
         super().__init__(num_classes=num_classes)
 
-        # TODO: define a small CNN:
         # example structure:
         # Conv2d -> BatchNorm2d -> ReLU -> MaxPool2d
         # Conv2d -> BatchNorm2d -> ReLU -> MaxPool2d
         # Conv2d -> BatchNorm2d -> ReLU -> AdaptiveAvgPool2d
         # Linear -> logits
-        self.features = ...
-        self.classifier = ...
+
+        # Треш контент
+        self.features = nn.Sequential(
+            # Блок 1: 32x32 -> 16x16
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),  # Свертка (in_channel, out_channel, геометрические параметры)
+            nn.BatchNorm2d(32),  # Стандартизация значений
+            nn.ReLU(),  # Убирает отрицательные значения
+            nn.MaxPool2d(2),  # Упрощение (из каждого блока 2*2 берем только макс)
+
+            # Блок 2: 16x16 -> 8x8
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            # Блок 3: 8x8 -> 1x1 (благодаря AdaptiveAvgPool2d)
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1))  # Финалит тензор в вид с 1
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Flatten(),  # Убирает все ненужные размерности
+            nn.Linear(128, num_classes)  # Определяет класс картинки?
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: implement forward pass
-        ...
+        x = self.features(x)  # Обработка картинки
+        logits = self.classifier(x)  # Классификация
+        return logits
 
 
 class TeacherModel(ClassificationModel):
