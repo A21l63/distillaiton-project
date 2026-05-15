@@ -36,7 +36,15 @@ class StudentModel(ClassificationModel):
         logits: [B, 10]
     """
 
-    def __init__(self, num_classes: int = 10):
+    def __init__(self, num_classes: int = 10,
+                 in_ch1: int = 3,  # Входные/выходные каналы, изначально RGB(3)
+                 out_ch1_in_ch2: int = 32,
+                 out_ch2_in_ch3: int = 64,
+                 out_ch3: int = 128,
+                 kernel_size: int = 3,  # Размер скользящего окна в свертке
+                 padding: int = 1,  # Параметр, отвечающий за неизменность размера матрицы после свертки
+                 pool_size: int = 2,  # Размер сжатия (каждые 2*2 пикселя в 1)
+                 target_output_size: tuple[int, int] = (1, 1)):  # Усредняет все пиксели по каналам
         super().__init__(num_classes=num_classes)
 
         # example structure:
@@ -48,27 +56,27 @@ class StudentModel(ClassificationModel):
         # Треш контент
         self.features = nn.Sequential(
             # Блок 1: 32x32 -> 16x16
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),  # Свертка (in_channel, out_channel, геометрические параметры)
-            nn.BatchNorm2d(32),  # Стандартизация значений
+            nn.Conv2d(in_ch1, out_ch1_in_ch2, kernel_size=kernel_size, padding=padding),  # Свертка
+            nn.BatchNorm2d(out_ch1_in_ch2),  # Стандартизация значений
             nn.ReLU(),  # Убирает отрицательные значения
-            nn.MaxPool2d(2),  # Упрощение (из каждого блока 2*2 берем только макс)
+            nn.MaxPool2d(pool_size),  # Упрощение (из каждого блока 2*2 берем только макс)
 
             # Блок 2: 16x16 -> 8x8
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(out_ch1_in_ch2, out_ch2_in_ch3, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(out_ch2_in_ch3),
             nn.ReLU(),
-            nn.MaxPool2d(2),
+            nn.MaxPool2d(pool_size),
 
             # Блок 3: 8x8 -> 1x1 (благодаря AdaptiveAvgPool2d)
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(out_ch2_in_ch3, out_ch3, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(out_ch3),
             nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1))  # Финалит тензор в вид с 1
+            nn.AdaptiveAvgPool2d(target_output_size)  # Финалит тензор в вид с 1
         )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),  # Убирает все ненужные размерности
-            nn.Linear(128, num_classes)  # Определяет класс картинки?
+            nn.Linear(out_ch3, num_classes)  # Определяет класс картинки?
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -90,10 +98,11 @@ class TeacherModel(ClassificationModel):
     def __init__(self, num_classes: int = 10, pretrained: bool = True):
         super().__init__(num_classes=num_classes)
 
-        # TODO: load pretrained ResNet18
-        # TODO: replace final fc layer
-        self.backbone = ...
+        self.backbone = models.resnet18(pretrained=pretrained)  # Загрузка предобученной модели ResNet18
+        # Меняем слой в модели, отвечающий за перевод из признаков в классы
+        # у ResNet18 их 1000, а нам надо num_classes(10)
+        in_features = self.backbone.fc.in_features  # Берем у модели сколько чисел приходит на вход функции
+        self.backbone.fc = nn.Linear(in_features, num_classes)  # Замена
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: call self.backbone(x)
-        ...
+        return self.backbone(x)

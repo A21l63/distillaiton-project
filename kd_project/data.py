@@ -45,7 +45,7 @@ def get_cifar10_transforms(train: bool = True):
 
 
 def get_cifar10_dataloaders(
-        data_dir: str,
+        data_dir: str,  # Директория, в которой датасет сохраняется/существует
         batch_size: int = 128,  # Количество картинок в пачке
         num_workers: int = 2,  # Количество потоков распараллеливания
 ) -> tuple[DataLoader, DataLoader]:
