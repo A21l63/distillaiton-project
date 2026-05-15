@@ -6,8 +6,11 @@ def count_parameters(model) -> int:
     """
     Count trainable parameters.
     """
-    # TODO: return number of trainable parameters
-    ...
+    cnt = 0
+    for p in model.parameters():
+        if p.requires_grad: #проверка на то, что для этого параметра нужно вычислять градиенты, то есть он нам интересен, изучаем его
+            cnt += p.numel() #p - вектор, p.numel() - размерность/количество элементов
+    return cnt
 
 
 def save_checkpoint(model, path: str):
