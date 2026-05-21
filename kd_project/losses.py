@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
 
-
 def hard_label_loss(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """
     Standard cross-entropy loss.
@@ -9,9 +8,7 @@ def hard_label_loss(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     logits: [B, num_classes]
     labels: [B]
     """
-    # TODO: compute cross entropy loss
-    ...
-
+    return F.cross_entropy(input = logits, target = labels)
 
 def distillation_loss(
     student_logits: torch.Tensor,
@@ -37,19 +34,15 @@ def distillation_loss(
         - student log probabilities should use log_softmax(student_logits / T)
         - use KL divergence
     """
-    # TODO: compute hard loss
-    hard_loss = ...
+    hard_loss = hard_label_loss(logits = student_logits, labels = labels)
 
-    # TODO: compute softened teacher probabilities
-    teacher_probs = ...
+    teacher_probs = F.softmax(teacher_logits / temperature, dim = 1)
 
-    # TODO: compute softened student log-probabilities
-    student_log_probs = ...
+    student_log_probs = F.log_softmax(student_logits / temperature, dim = 1)
 
-    # TODO: compute KL divergence soft loss
-    soft_loss = ...
+    # Следующая строка эквивалентна: soft_loss = torch.sum(teacher_probs * (teacher_probs.log() - student_log_probs)) / teacher_probs.size()[0]
+    soft_loss = torch.nn.KLDivLoss(reduction='batchmean')(student_log_probs, teacher_probs)
 
-    # TODO: combine losses
-    loss = ...
+    loss = (alpha * hard_loss + (1 - alpha) * soft_loss) * (temperature ** 2)
 
     return loss

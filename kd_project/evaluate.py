@@ -9,20 +9,52 @@ def compute_accuracy(model, dataloader, device: str) -> float:
     """
     Compute classification accuracy.
     """
-    # TODO: set model.eval()
-    # TODO: iterate over dataloader with torch.no_grad()
-    # TODO: compute predictions
-    # TODO: return accuracy
-    ...
+    with torch.no_grad(): #отключение вычисления градиентов
+        model.eval() #говорим модели ничего не запоминать
+        cnt_good_predictions = 0
+        cnt_predictions = 0
+        for images, labels in dataloader:
+            images = images.to(device)
+            labels = labels.to(device)
+            predictions = model(images)
+            ans = [] #массив номеров самых вероятных классов для каждого батча
+            for s in predictions:
+                idx = 0
+                for i in range(len(s)):
+                    if s[i] > s[idx]:
+                        idx = i
+                ans.append(idx)
+            for i in range(len(ans)):
+                if ans[i] == labels[i]:
+                    cnt_good_predictions += 1
+            cnt_predictions += len(ans)
+        model.train() #возвращаем модель в режим обучения
+        return cnt_good_predictions / cnt_predictions #возвращаем долю правильных ответов
 
 
 def compute_confusion_matrix(model, dataloader, device: str):
     """
     Compute confusion matrix for CIFAR-10.
     """
-    # TODO: collect labels and predictions
-    # TODO: use sklearn.metrics.confusion_matrix
-    ...
+    with torch.no_grad(): #отключение вычисления градиентов
+        model.eval() #говорим модели ничего не запоминать
+        all_labels = []
+        all_predictions = []
+        for images, labels in dataloader:
+            images = images.to(device)
+            labels = labels.to(device)
+            all_labels.extend(labels.cpu().numpy())
+            predictions = model(images)
+            ans = []
+            for s in predictions:
+                idx = 0
+                for i in range(len(s)):
+                    if s[i] > s[idx]:
+                        idx = i
+                ans.append(idx)
+            all_predictions.extend(ans)
+        cm = confusion_matrix(all_labels, all_predictions)
+        return cm
 
 
 def measure_inference_time(
@@ -36,8 +68,16 @@ def measure_inference_time(
 
     Keep this simple.
     """
-    # TODO: set model.eval()
-    # TODO: run several batches with torch.no_grad()
-    # TODO: measure elapsed time
-    # TODO: return average time per batch
-    ...
+    with torch.no_grad(): #отключение вычисления градиентов
+        model.eval() #говорим модели ничего не запоминать
+        start_time = time.time()
+        i = 0
+        for images, labels in dataloader:
+            if i >= num_batches:
+                break
+            images = images.to(device)
+            labels = labels.to(device)
+            predictions = model(images)
+            i += 1
+        end_time = time.time()
+        return (end_time - start_time) / num_batches
