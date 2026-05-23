@@ -4,13 +4,13 @@ from data import get_cifar10_dataloaders
 from models import TeacherModel
 from train import fit
 from utils import save_checkpoint, count_parameters
+from main_distill_student import teacher_checkpoint_path
 
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     data_dir = "./cifar-10"
-    teacher_checkpoint_path = "./teacher_model"
     batch_size = 128
     num_epochs = 10
     learning_rate = 0.01

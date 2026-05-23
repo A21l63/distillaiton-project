@@ -41,8 +41,8 @@ def distillation_loss(
     student_log_probs = F.log_softmax(student_logits / temperature, dim = 1)
 
     # Следующая строка эквивалентна: soft_loss = torch.sum(teacher_probs * (teacher_probs.log() - student_log_probs)) / teacher_probs.size()[0]
-    soft_loss = torch.nn.KLDivLoss(reduction='batchmean')(student_log_probs, teacher_probs)
+    soft_loss = torch.nn.KLDivLoss(reduction='batchmean')(input = student_log_probs, target = teacher_probs)
 
-    loss = (alpha * hard_loss + (1 - alpha) * soft_loss) * (temperature ** 2)
+    loss = (alpha * hard_loss) + (1 - alpha) * soft_loss * (temperature ** 2)
 
     return loss
