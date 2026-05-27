@@ -28,28 +28,34 @@ def main():
     teacher_model = load_checkpoint(teacher_model, teacher_checkpoint_path, device)
     teacher_model.eval()
 
+    """
     teacher_model.requires_grad_(False)
     distilled_student_model = StudentModel().to(device)
     distilled_student_model = load_checkpoint(distilled_student_model, distill_student_checkpoint_path, device)
-    distilled_student_model.eval()
+    distilled_student_model.eval() """
 
 
     student_acc = compute_accuracy(student_model, test_loader, device)
     teacher_acc = compute_accuracy(teacher_model, test_loader, device)
-    distilled_acc = compute_accuracy(distilled_student_model, test_loader, device)
+    # distilled_acc = compute_accuracy(distilled_student_model, test_loader, device)
 
     student_params = count_parameters(student_model)
     teacher_params = count_parameters(teacher_model)
-    distilled_params = count_parameters(distilled_student_model)
+    # distilled_params = count_parameters(distilled_student_model)
 
     student_time = measure_inference_time(student_model, test_loader, device)
     teacher_time = measure_inference_time(teacher_model, test_loader, device)
-    distilled_time = measure_inference_time(distilled_student_model, test_loader, device)
+    # distilled_time = measure_inference_time(distilled_student_model, test_loader, device)
 
+    """
     results = pd.DataFrame({"Model": ["Baseline Student", "Teacher", "Distilled Student"],
                             "Accuracy": [student_acc, teacher_acc, distilled_acc],
                             "Params": [student_params, teacher_params, distilled_params],
-                            "Inference Time": [student_time, teacher_time, distilled_time]})
+                            "Inference Time": [student_time, teacher_time, distilled_time]}) """
+    results = pd.DataFrame({"Model": ["Baseline Student", "Teacher"],
+                            "Accuracy": [student_acc, teacher_acc],
+                            "Params": [student_params, teacher_params],
+                            "Inference Time": [student_time, teacher_time]})
     print("\n===== MODEL COMPARISON =====")
     print(
         results)
@@ -57,7 +63,7 @@ def main():
 
 
     compute_confusion_matrix( student_model, test_loader, device, title="Baseline Student" )
-    compute_confusion_matrix( distilled_student_model, test_loader, device, title="Distilled Student" )
+    # compute_confusion_matrix( distilled_student_model, test_loader, device, title="Distilled Student" )
     compute_confusion_matrix( teacher_model, test_loader, device, title="Teacher" )
 
 
