@@ -1,36 +1,60 @@
 import time
 
-import numpy as np
 import torch
 from sklearn.metrics import confusion_matrix
 
+from tqdm.auto import tqdm
 
-def compute_accuracy(model, dataloader, device: str) -> float:
+
+def compute_accuracy(
+    model,
+    dataloader,
+    device: str,
+    desc: str = "Evaluating",
+) -> float:
     """
     Compute classification accuracy.
     """
-    with torch.no_grad(): #отключение вычисления градиентов
-        model.eval() #говорим модели ничего не запоминать
-        cnt_good_predictions = 0
-        cnt_predictions = 0
-        for images, labels in dataloader:
+    was_training = model.training
+
+    model.eval()
+
+    cnt_good_predictions = 0
+    cnt_predictions = 0
+
+    eval_pbar = tqdm(
+        dataloader,
+        desc=desc,
+        leave=False,
+        dynamic_ncols=True,
+    )
+
+    with torch.no_grad():
+        for images, labels in eval_pbar:
             images = images.to(device)
             labels = labels.to(device)
-            predictions = model(images)
-            ans = [] #массив номеров самых вероятных классов для каждого батча
-            for s in predictions:
-                idx = 0
-                for i in range(len(s)):
-                    if s[i] > s[idx]:
-                        idx = i
-                ans.append(idx)
-            for i in range(len(ans)):
-                if ans[i] == labels[i]:
-                    cnt_good_predictions += 1
-            cnt_predictions += len(ans)
-        model.train() #возвращаем модель в режим обучения
-        return cnt_good_predictions / cnt_predictions #возвращаем долю правильных ответов
 
+            logits = model(images)
+
+            predicted_labels = torch.argmax(logits, dim=1)
+
+            cnt_good_predictions += (predicted_labels == labels).sum().item()
+            cnt_predictions += labels.size(0)
+
+            running_accuracy = cnt_good_predictions / cnt_predictions
+
+            eval_pbar.set_postfix(
+                {
+                    "accuracy": f"{running_accuracy:.4f}",
+                    "correct": cnt_good_predictions,
+                    "total": cnt_predictions,
+                }
+            )
+
+    if was_training:
+        model.train()
+
+    return cnt_good_predictions / cnt_predictions
 
 def compute_confusion_matrix(model, dataloader, device: str):
     """
@@ -44,15 +68,9 @@ def compute_confusion_matrix(model, dataloader, device: str):
             images = images.to(device)
             labels = labels.to(device)
             all_labels.extend(labels.cpu().numpy())
-            predictions = model(images)
-            ans = []
-            for s in predictions:
-                idx = 0
-                for i in range(len(s)):
-                    if s[i] > s[idx]:
-                        idx = i
-                ans.append(idx)
-            all_predictions.extend(ans)
+            logits = model(images)
+            predictions = torch.argmax(logits, dim=1)
+            all_predictions.extend(predictions.cpu().numpy())
         cm = confusion_matrix(all_labels, all_predictions)
         return cm
 
@@ -72,12 +90,11 @@ def measure_inference_time(
         model.eval() #говорим модели ничего не запоминать
         start_time = time.time()
         i = 0
-        for images, labels in dataloader:
+        for images, _labels in dataloader:
             if i >= num_batches:
                 break
             images = images.to(device)
-            labels = labels.to(device)
-            predictions = model(images)
+            model(images)
             i += 1
         end_time = time.time()
         return (end_time - start_time) / num_batches

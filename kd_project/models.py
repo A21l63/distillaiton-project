@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torchvision import models
 
 
 class ClassificationModel(nn.Module):
@@ -98,11 +97,21 @@ class TeacherModel(ClassificationModel):
     def __init__(self, num_classes: int = 10, pretrained: bool = True):
         super().__init__(num_classes=num_classes)
 
-        self.backbone = models.resnet18(pretrained=pretrained)  # Загрузка предобученной модели ResNet18
-        # Меняем слой в модели, отвечающий за перевод из признаков в классы
-        # у ResNet18 их 1000, а нам надо num_classes(10)
-        in_features = self.backbone.fc.in_features  # Берем у модели сколько чисел приходит на вход функции
-        self.backbone.fc = nn.Linear(in_features, num_classes)  # Замена
+        if num_classes != 10:
+            raise ValueError(
+                "TeacherModel uses a CIFAR-10 checkpoint and supports only 10 classes"
+            )
+
+        # List all available model entrypoints in a specific repo
+        # models = torch.hub.list('chenyaofo/pytorch-cifar-models')
+        # print(models)
+
+        self.backbone = torch.hub.load(
+            "chenyaofo/pytorch-cifar-models",
+            "cifar10_mobilenetv2_x1_4",
+            pretrained=pretrained,
+        )
+
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.backbone(x)

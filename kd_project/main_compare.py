@@ -1,5 +1,7 @@
 import torch
 import pandas as pd
+
+from config import DATA_DIR, TEACHER_CHECKPOINT_PATH
 from data import get_cifar10_dataloaders
 from models import TeacherModel
 from evaluate import compute_accuracy, measure_inference_time, compute_confusion_matrix
@@ -12,17 +14,13 @@ import seaborn as sns
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    data_dir = "./cifar-10"
     batch_size = 128
-    num_epochs = 10
-    learning_rate = 0.01
-    teacher_checkpoint_path = "./teacher_model"
 
-    train_loader, test_loader = get_cifar10_dataloaders(data_dir, batch_size)
+    _, test_loader = get_cifar10_dataloaders(DATA_DIR, batch_size)
 
 
     teacher_model = TeacherModel().to(device)
-    teacher_model = load_checkpoint(teacher_model, teacher_checkpoint_path, device)
+    teacher_model = load_checkpoint(teacher_model, TEACHER_CHECKPOINT_PATH, device)
     teacher_model.eval()
 
     """
@@ -45,7 +43,7 @@ def main():
                             "Accuracy": [student_acc, teacher_acc, distilled_acc],
                             "Params": [student_params, teacher_params, distilled_params],
                             "Inference Time": [student_time, teacher_time, distilled_time]}) """
-    results = pd.DataFrame({"Model": ["Baseline Student", "Teacher"],
+    results = pd.DataFrame({"Model": ["Teacher"],
                             "Accuracy": [teacher_acc],
                             "Params": [teacher_params],
                             "Inference Time": [teacher_time]})
