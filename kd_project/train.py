@@ -79,6 +79,5 @@ def fit(
         loss_mean = train_one_epoch(model, train_loader, optimizer, device, teacher_model, temperature, alpha)
         history["test_accuracy"].append(compute_accuracy(model, test_loader, device))
         history["train_loss"].append(loss_mean)
-        tracking_tqdm.write(f"Epoch {tracking_tqdm.n}, loss_mean={history["train_loss"][-1]}, test_accuracy={history['test_accuracy'][-1]}")
-
+        tracking_tqdm.write(f'Epoch {tracking_tqdm.n}, loss_mean={history["train_loss"][-1]}, test_accuracy={history["test_accuracy"][-1]}')
     return history
