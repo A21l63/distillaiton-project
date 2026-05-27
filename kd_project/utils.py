@@ -29,6 +29,7 @@ def load_checkpoint(model, path: str, device: str):
     # либо воспользоваться next(model.parameters()).device, чтобы узнать его, скорее всего у вас - "cpu"
     weights = torch.load(path, map_location=device)
     model.load_state_dict(weights)
+    return model
 
 
 def plot_history(history: dict, output_path: str,
