@@ -6,12 +6,13 @@ from train import fit
 from utils import load_checkpoint, save_checkpoint, count_parameters
 
 teacher_checkpoint_path = "./teacher_model"
+distill_student_checkpoint_path = "./distill_student_model"
+
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     data_dir = "./cifar-10"
-    distill_student_checkpoint_path = "./distill_student_model"
     batch_size = 128
     num_epochs = 10
     learning_rate = 0.01
